@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=PT+Mono&display=swap" rel="stylesheet">
+    <script src="blotter.min.js"></script>
+    <script src="materials/channelSplitMaterial.js"></script>
+    <script src="materials/fliesMaterial.js"></script>
+    <script>
+        window.onload = function() {
+            var unfocusValue = 1;
+            var focusValue = 0;
+            var valueDelta = 0.02;
+            var isFocusing = true;
+            var animationStarted = false;
+            var updateInterval, value;
+            var material = new Blotter.ChannelSplitMaterial();
+
+            window.setTimeout(initialise, 1000);
+
+            function initialise() {
+                var string = "Happy 30th BiRthDay Abbie!";
+
+                var size = 60;
+                var paddingLeft = 40;
+                var paddingRight = 40;
+                var paddingTop = 100;
+                var paddingBottom = 100;
+
+                if (window.innerWidth < 1000) {
+                    paddingLeft = 0;
+                    paddingRight = 0;
+                    size = 50;
+                    paddingTop = 50;
+                    paddingBottom = 50;
+
+                    if (window.innerWidth < window.innerHeight) {
+                        document.getElementById("distortion-text").style.marginTop = "15%";
+                    }
+                }
+                
+                var text = new Blotter.Text(string, {
+                    family: "Major Mono Display",
+                    style: "italic",
+                    fill: "#202020",
+                    size: size,
+                    paddingLeft: paddingLeft,
+                    paddingRight: paddingRight,
+                    paddingTop: paddingTop,
+                    paddingBottom: paddingBottom
+                });
+
+                var blotter = new Blotter(material, {texts: text});
+
+                var elem = document.getElementById("distortion-text");
+                var scope = blotter.forText(text);
+                scope.appendTo(elem);
+
+                material.uniforms.uOffset.value = unfocusValue;
+                material.uniforms.uRotation.value = (1 - unfocusValue) * 360;
+                material.uniforms.uApplyBlur.value = false;
+
+                document.getElementById("instruction-text").innerHTML = "";
+
+                window.setTimeout(function() {
+                    setInstructionText();
+                }, 300);
+            }
+
+            window.onmousedown = function() {
+                if (!animationStarted) {
+                    animationStarted = true;
+                    value = (isFocusing) ? unfocusValue : focusValue;
+                    updateInterval = window.setInterval(updateText, 30);
+                    setInstructionText();
+                }
+            };
+
+            function setInstructionText() {
+                var instructionText = document.getElementById("instruction-text");
+                if (animationStarted) {
+                    instructionText.innerHTML = "";
+                }
+                else if (isFocusing) {
+                    instructionText.innerHTML = "click to focus";
+                }
+                else {
+                    instructionText.innerHTML = "click to unfocus";
+                }
+            }
+
+            function updateText() {
+                material.uniforms.uOffset.value = value;
+                material.uniforms.uRotation.value = (1 - value) * 360;
+                value = (isFocusing) ? value - valueDelta : value + valueDelta;
+
+                if (isFocusing && value <= focusValue) {
+                    endAnimation(focusValue);
+                }
+                else if (!isFocusing && value >= unfocusValue) {
+                    endAnimation(unfocusValue);
+                }
+            }
+
+            function endAnimation(value) {
+                animationStarted = false;
+                material.uniforms.uOffset.value = value;
+                material.uniforms.uRotation.value = (1 - value);
+                clearInterval(updateInterval);
+                isFocusing = !isFocusing;
+                setInstructionText();
+            }
+
+            window.onmousemove = function(event) {
+                return;
+                var distance = getDistanceFromCenter(event.clientX, event.clientY);
+                var maxDistance = 1200;
+                var distPerc = distance / maxDistance;
+
+                material.uniforms.uOffset.value = Math.min(distPerc, 0.25);
+                material.uniforms.uRotation.value = distPerc * 360;
+            };
+            
+            var center = {
+                x: getRandomBetween(window.innerWidth * 0.3, window.innerWidth * 0.7),
+                y: getRandomBetween(window.innerHeight * 0.25, window.innerHeight * 0.75)
+            };
+            function getRandomBetween(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            function getDistanceFromCenter(x, y) {
+                return Math.sqrt(Math.pow(x - center.x, 2) + Math.pow(y - center.y, 2));
+            }
+        };
+    </script>
+    <style>
+        body {
+            background: #E0E0E0;
+        }
+        #distortion-text {
+            text-align: center;
+            margin-top: 10%;
+        }
+        #instruction-text {
+            font-family: 'Major Mono Display', monospace;
+            font-size: 18px;
+            color: #202020;
+            user-select: none;
+            text-align: center;
+        }
+    </style>
+    <title>-</title>
+</head>
+<body>
+    <div id="distortion-text"></div>
+    <div id="instruction-text">loading</div>
+</body>
+</html>
